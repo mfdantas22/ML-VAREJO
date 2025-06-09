@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard do Modelo de Classificação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Custom animation for prediction results */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        /* Basic styling for form inputs and selects to match native look with Tailwind */
+        .form-input {
+            @apply border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+        }
+        .form-select {
+            @apply block appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-md leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234B5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); /* Darker arrow */
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 0.65em 0.65em;
+        }
+
+        /* For the feature importance bars */
+        .feature-importance-bar {
+            @apply bg-blue-500 text-xs font-medium text-white text-center p-0.5 leading-none rounded-full;
+        }
+
+        /* Added for loading states */
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6; /* Tailwind blue-500 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <header class="flex justify-between items-center pb-6 mb-8 border-b border-gray-200">
+        <h1 class="text-4xl font-extrabold text-gray-900">Dashboard do Classificador de Categoria de Produto</h1>
+    </header>
+
+    <div class="space-y-12">
+        <section id="metrics-dashboard" class="bg-white rounded-lg shadow-xl p-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-tachometer-alt mr-3 text-blue-600"></i> Métricas Principais do Modelo
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-blue-50 p-6 rounded-lg shadow-sm border border-blue-200">
+                    <h3 class="text-xl font-semibold text-blue-800 mb-2">Acurácia</h3>
+                    <p class="text-4xl font-extrabold text-blue-600">{{ "%.2f"|format(accuracy*100) }}%</p>
+                    <p class="text-gray-600 text-sm mt-1">Geral de previsões corretas</p>
+                </div>
+                <div class="bg-green-50 p-6 rounded-lg shadow-sm border border-green-200">
+                    <h3 class="text-xl font-semibold text-green-800 mb-2">Total de Classes</h3>
+                    <p class="text-4xl font-extrabold text-green-600">{{ class_names|length }}</p>
+                    <p class="text-gray-600 text-sm mt-1">Categorias que o modelo prevê</p>
+                </div>
+                <div class="bg-purple-50 p-6 rounded-lg shadow-sm border border-purple-200">
+                    <h3 class="text-xl font-semibold text-purple-800 mb-2">Features Usadas</h3>
+                    <p class="text-4xl font-extrabold text-purple-600">{{ feature_names|length }}</p>
+                    <p class="text-gray-600 text-sm mt-1">Variáveis de entrada do modelo</p>
+                </div>
+            </div>
+            <p class="text-gray-700 mt-8 text-lg leading-relaxed">
+                Este dashboard apresenta um modelo de **Árvore de Decisão** projetado para classificar categorias de produtos com base em dados de vendas. A **acurácia** fornece uma visão geral do desempenho do modelo, enquanto as visualizações detalhadas abaixo oferecem insights sobre como o modelo toma suas decisões e o impacto de cada característica de entrada.
+            </p>
+        </section>
+
+        ---
+
+        <section id="tree-visualization" class="bg-white rounded-lg shadow-xl p-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-tree mr-3 text-green-600"></i> Visualização da Árvore de Decisão
+            </h2>
+            <p class="bg-green-100 text-green-800 p-4 rounded-md mb-6 border border-green-200">
+                <i class="fas fa-info-circle mr-2"></i> A árvore abaixo ilustra o fluxo de decisão do modelo. Cada nó representa uma pergunta sobre uma feature, e cada caminho leva a uma previsão de categoria de produto.
+            </p>
+            <div class="max-w-full overflow-auto bg-gray-50 rounded-lg p-6 border border-gray-200">
+                <img src="{{ url_for('static', filename='images/arvore_decisao.png') }}" class="max-w-full h-auto mx-auto" alt="Árvore de Decisão" style="max-height: 700px; object-fit: contain;">
+            </div>
+            <div class="mt-6 text-center">
+                <a href="{{ url_for('static', filename='images/arvore_decisao.png') }}" target="_blank" class="bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 transition duration-200 inline-flex items-center">
+                    <i class="fas fa-search-plus mr-2"></i> Ampliar Árvore
+                </a>
+            </div>
+        </section>
+
+        ---
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div id="feature-importance" class="bg-white rounded-lg shadow-xl p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-flask mr-3 text-indigo-600"></i> Importância das Features
+                </h2>
+                <p class="text-gray-700 mb-6">
+                    A importância de uma feature indica o quanto ela contribui para as decisões do modelo. Barras maiores representam um impacto mais significativo na previsão da categoria.
+                </p>
+                <div class="space-y-4">
+                    {% for feature in feature_names %}
+                    <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ feature }}</h3>
+                        <div class="w-full bg-gray-200 rounded-full h-5">
+                            <div class="feature-importance-bar" id="importance-{{ feature }}" style="width: 0%;">
+                                <small class="block text-center pt-0.5" data-importance-value="0.00">0.00%</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="confusion-matrix" class="bg-white rounded-lg shadow-xl p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-th-large mr-3 text-red-600"></i> Matriz de Confusão
+                </h2>
+                <p class="text-gray-700 mb-6">
+                    A matriz de confusão é crucial para entender o desempenho do modelo, mostrando as previsões corretas e incorretas para cada categoria.
+                </p>
+                <div class="text-center">
+                    <img src="{{ url_for('static', filename='images/confusion_matrix.png') }}" class="max-w-full h-auto mx-auto border border-gray-200 rounded-lg" alt="Matriz de Confusão" style="max-height: 500px; object-fit: contain;">
+                </div>
+            </div>
+        </section>
+
+        ---
+
+        <section id="individual-prediction" class="bg-white rounded-lg shadow-xl p-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-lightbulb mr-3 text-yellow-600"></i> Fazer uma Previsão Individual
+            </h2>
+            <p class="text-gray-700 mb-6">
+                Insira os detalhes de uma venda para prever a categoria de produto correspondente.
+            </p>
+            <form id="prediction-form" novalidate>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div>
+                        <label for="valor_venda" class="block text-gray-700 text-sm font-semibold mb-2">Valor da Venda</label>
+                        <input type="number" step="0.01" min="0" class="form-input" id="valor_venda" name="valor_venda" required placeholder="Ex: 250.75">
+                        <p class="text-gray-500 text-xs mt-1">Insira o valor total da venda em reais.</p>
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-valor_venda"></div>
+                    </div>
+                    <div>
+                        <label for="segmento" class="block text-gray-700 text-sm font-semibold mb-2">Segmento do Cliente</label>
+                        <select class="form-select" id="segmento" name="segmento" required>
+                            <option value="">Selecione...</option>
+                            <option value="Consumer">Consumer</option>
+                            <option value="Corporate">Corporate</option>
+                            <option value="Home Office">Home Office</option>
+                        </select>
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-segmento"></div>
+                    </div>
+                    <div>
+                        <label for="pais" class="block text-gray-700 text-sm font-semibold mb-2">País</label>
+                        <select class="form-select" id="pais" name="pais" required>
+                            <option value="">Selecione...</option>
+                            <option value="Brasil">Brasil</option>
+                            <option value="Estados Unidos">Estados Unidos</option>
+                            <option value="México">México</option>
+                            </select>
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-pais"></div>
+                    </div>
+                    <div>
+                        <label for="estado" class="block text-gray-700 text-sm font-semibold mb-2">Estado</label>
+                        <input type="text" class="form-input" id="estado" name="estado" required placeholder="Ex: São Paulo (SP)">
+                        <p class="text-gray-500 text-xs mt-1">Nome completo do estado ou sigla (ex: SP).</p>
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-estado"></div>
+                    </div>
+                    <div>
+                        <label for="cidade" class="block text-gray-700 text-sm font-semibold mb-2">Cidade</label>
+                        <input type="text" class="form-input" id="cidade" name="cidade" required placeholder="Ex: São Paulo">
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-cidade"></div>
+                    </div>
+                    <div>
+                        <label for="subcategoria" class="block text-gray-700 text-sm font-semibold mb-2">SubCategoria</label>
+                        <input type="text" class="form-input" id="subcategoria" name="subcategoria" required placeholder="Ex: Cadeiras">
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-subcategoria"></div>
+                    </div>
+                    <div>
+                        <label for="mes" class="block text-gray-700 text-sm font-semibold mb-2">Mês do Pedido (1-12)</label>
+                        <input type="number" class="form-input" id="mes" name="mes" min="1" max="12" required>
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-mes"></div>
+                    </div>
+                    <div>
+                        <label for="ano" class="block text-gray-700 text-sm font-semibold mb-2">Ano do Pedido</label>
+                        <input type="number" class="form-input" id="ano" name="ano" min="2015" max="2025" value="2025" required>
+                        <div class="text-red-500 text-sm mt-1 hidden" id="error-ano"></div>
+                    </div>
+                </div>
+
+                <button type="submit" class="bg-yellow-600 text-white py-3 px-6 rounded-md hover:bg-yellow-700 transition duration-200 inline-flex items-center" id="predict-button">
+                    <i class="fas fa-magic mr-2"></i> Fazer Previsão
+                </button>
+                <div id="prediction-loading" class="inline-block ml-4 hidden">
+                    <div class="loading-spinner"></div>
+                </div>
+            </form>
+
+            <div id="prediction-result" class="bg-white rounded-lg shadow-md mt-8 p-6 border-l-4 border-yellow-600 hidden animate-fadeIn">
+                <h5 class="text-xl text-yellow-700 mb-4"><i class="fas fa-tags mr-2"></i> Categoria Prevista: <span id="predicted-category" class="font-bold text-green-600"></span></h5>
+                <h6 class="text-lg text-gray-700 mb-3">Probabilidades:</h6>
+                <div id="probabilities-container">
+                    </div>
+                <div class="bg-yellow-50 text-yellow-700 p-4 rounded-md mt-6">
+                    <h6 class="text-lg font-semibold mb-2">Como interpretar?</h6>
+                    <p class="text-sm">A categoria prevista é aquela com maior probabilidade segundo o modelo. As barras mostram a confiança do modelo em cada possível categoria.</p>
+                </div>
+            </div>
+            <div id="prediction-error-message" class="bg-red-100 text-red-800 p-3 rounded-md mt-4 hidden">
+                <i class="fas fa-exclamation-triangle mr-2"></i> Ocorreu um erro ao fazer a previsão. Por favor, verifique os dados e tente novamente.
+            </div>
+        </section>
+
+        ---
+
+        <section id="detailed-evaluation" class="bg-white rounded-lg shadow-xl p-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-chart-line mr-3 text-blue-600"></i> Métricas de Avaliação Detalhadas
+            </h2>
+            <p class="text-gray-700 mb-6">
+                Esta tabela apresenta as métricas de avaliação do modelo por categoria, incluindo Precision, Recall e F1-Score, que são cruciais para entender o desempenho do modelo em diferentes classes.
+            </p>
+            <div class="overflow-x-auto mb-8 border border-gray-200 rounded-lg">
+                <table class="w-full text-left table-auto">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="py-3 px-4 text-gray-600 font-semibold text-sm">Categoria</th>
+                            <th class="py-3 px-4 text-gray-600 font-semibold text-sm">Precision</th>
+                            <th class="py-3 px-4 text-gray-600 font-semibold text-sm">Recall</th>
+                            <th class="py-3 px-4 text-gray-600 font-semibold text-sm">F1-Score</th>
+                            <th class="py-3 px-4 text-gray-600 font-semibold text-sm">Support</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in class_names %}
+                        <tr class="border-b border-gray-200 last:border-b-0">
+                            <td class="py-3 px-4 text-gray-800">{{ category }}</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.2f"|format(report[category]['precision']*100) }}%</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.2f"|format(report[category]['recall']*100) }}%</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.2f"|format(report[category]['f1-score']*100) }}%</td>
+                            <td class="py-3 px-4 text-gray-700">{{ report[category]['support'] }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="bg-blue-50 font-bold">
+                            <td class="py-3 px-4 text-blue-800">Média Ponderada</td>
+                            <td class="py-3 px-4 text-blue-700">{{ "%.2f"|format(report['weighted avg']['precision']*100) }}%</td>
+                            <td class="py-3 px-4 text-blue-700">{{ "%.2f"|format(report['weighted avg']['recall']*100) }}%</td>
+                            <td class="py-3 px-4 text-blue-700">{{ "%.2f"|format(report['weighted avg']['f1-score']*100) }}%</td>
+                            <td class="py-3 px-4 text-blue-700">{{ report['weighted avg']['support'] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="border border-gray-200 rounded-md">
+                <button class="w-full text-left px-5 py-3 font-semibold text-lg text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none accordion-header" data-collapse-target="#precision-info" aria-expanded="false">
+                    <i class="fas fa-question-circle mr-2 text-gray-600"></i> Entender Precision, Recall e F1-Score
+                </button>
+                <div id="precision-info" class="accordion-content p-5 hidden">
+                    <p class="text-gray-700 mb-3">**Precision** (Precisão) é a proporção de previsões positivas corretas entre todas as previsões positivas feitas para uma determinada classe. Responde à pergunta: *Das amostras que o modelo previu como classe X, quantas realmente eram da classe X?*</p>
+                    <p class="text-gray-700 mb-3">**Recall** (Revocação ou Sensibilidade) é a proporção de casos positivos reais que foram corretamente identificados pelo modelo. Responde à pergunta: *De todas as amostras que realmente eram da classe X, quantas o modelo identificou corretamente?*</p>
+                    <p class="text-gray-700 mb-3">O **F1-Score** é a média harmônica entre Precision e Recall. É uma métrica útil e mais equilibrada quando Precision e Recall são igualmente importantes, especialmente em problemas com classes desbalanceadas.</p>
+                    <p class="text-gray-700 mb-3">**Support** (Suporte) é o número de ocorrências reais da classe no conjunto de dados de teste.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lógica para o Acordeão (Expansão/Colapso das Métricas)
+            document.querySelectorAll('.accordion-header').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.collapseTarget;
+                    const targetContent = document.querySelector(targetId);
+                    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+                    button.setAttribute('aria-expanded', !isExpanded);
+                    if (isExpanded) {
+                        targetContent.classList.add('hidden');
+                        targetContent.classList.remove('show');
+                    } else {
+                        targetContent.classList.remove('hidden');
+                        targetContent.classList.add('show');
+                    }
+                });
+            });
+
+            // Lógica de manipulação de formulário e requisições (Exemplo para Previsão Individual)
+            const predictionForm = document.getElementById('prediction-form');
+            const predictionResult = document.getElementById('prediction-result');
+            const predictedCategory = document.getElementById('predicted-category');
+            const probabilitiesContainer = document.getElementById('probabilities-container');
+            const predictionLoading = document.getElementById('prediction-loading');
+            const predictButton = document.getElementById('predict-button');
+            const predictionErrorMessage = document.getElementById('prediction-error-message');
+
+            predictionForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Resetar mensagens de erro e resultados anteriores
+                document.querySelectorAll('[id^="error-"]').forEach(el => el.classList.add('hidden'));
+                predictionErrorMessage.classList.add('hidden');
+                predictionResult.classList.add('hidden');
+                probabilitiesContainer.innerHTML = '';
+                predictionLoading.classList.remove('hidden');
+                predictButton.disabled = true; // Desabilita o botão enquanto carrega
+
+                const formData = new FormData(predictionForm);
+                const data = Object.fromEntries(formData.entries());
+
+                // Validação básica do lado do cliente para campos numéricos
+                let isValid = true;
+                if (parseFloat(data.valor_venda) < 0) {
+                    document.getElementById('error-valor_venda').textContent = 'O valor da venda não pode ser negativo.';
+                    document.getElementById('error-valor_venda').classList.remove('hidden');
+                    isValid = false;
+                }
+                if (parseInt(data.mes) < 1 || parseInt(data.mes) > 12) {
+                    document.getElementById('error-mes').textContent = 'O mês deve estar entre 1 e 12.';
+                    document.getElementById('error-mes').classList.remove('hidden');
+                    isValid = false;
+                }
+                if (!isValid) {
+                    predictionLoading.classList.add('hidden');
+                    predictButton.disabled = false;
+                    return;
+                }
+
+                try {
+                    // Substitua '/predict' pela sua rota Flask real para previsão
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    predictedCategory.textContent = result.predicted_category;
+
+                    // Renderizar probabilidades
+                    const sortedProbabilities = Object.entries(result.probabilities).sort(([, a], [, b]) => b - a);
+                    sortedProbabilities.forEach(([category, prob]) => {
+                        const probPercentage = (prob * 100).toFixed(2);
+                        const probDiv = document.createElement('div');
+                        probDiv.className = 'mb-2';
+                        probDiv.innerHTML = `
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-gray-800">${category}</span>
+                                <span class="font-semibold text-blue-600">${probPercentage}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-blue-500 h-3 rounded-full" style="width: ${probPercentage}%"></div>
+                            </div>
+                        `;
+                        probabilitiesContainer.appendChild(probDiv);
+                    });
+
+                    predictionResult.classList.remove('hidden');
+                } catch (error) {
+                    console.error('Erro na previsão:', error);
+                    predictionErrorMessage.classList.remove('hidden');
+                } finally {
+                    predictionLoading.classList.add('hidden');
+                    predictButton.disabled = false;
+                }
+            });
+
+            // Simulação de preenchimento da Importância das Features
+            // Em um projeto real, você buscaria esses valores do seu backend após o modelo ser treinado.
+            // Estes são apenas valores de exemplo.
+            const featureImportances = {
+                "Valor_Venda": 0.45,
+                "Segmento_Consumer": 0.15,
+                "Pais_Brasil": 0.08,
+                "Estado_SP": 0.07,
+                "Cidade_Sao_Paulo": 0.06,
+                "SubCategoria_Cadeiras": 0.05,
+                "Mes_Pedido": 0.03,
+                "Ano_Pedido": 0.01,
+                // Adicione outras features com seus valores de importância aqui
+                // Importante: os nomes das chaves devem corresponder às `feature_names` no seu backend
+            };
+
+            setTimeout(() => { // Simula um pequeno atraso para "carregar"
+                {% for feature in feature_names %}
+                const featureElement = document.getElementById('importance-{{ feature }}');
+                if (featureElement) {
+                    // Normaliza o nome da feature para corresponder às chaves em featureImportances, se necessário
+                    // Por exemplo, se seu feature_names do backend incluir dummy variables como 'Segmento_Consumer'
+                    // e no seu HTML você está iterando sobre 'Segmento', 'Pais', etc.
+                    let cleanedFeatureName = '{{ feature }}';
+                    // Este é um exemplo de como você faria o mapeamento se as features
+                    // no seu `feature_names` tivessem nomes exatos como 'Segmento_Consumer'
+                    // e não apenas 'Segmento'. Adapte isso à sua estrutura de dados real.
+                    
+                    const importanceValue = featureImportances[cleanedFeatureName] || 0; // Pega o valor ou 0 se não encontrado
+                    const importancePercentage = (importanceValue * 100).toFixed(2);
+                    featureElement.style.width = `${importancePercentage}%`;
+                    featureElement.querySelector('small').textContent = `${importancePercentage}%`;
+                }
+                {% endfor %}
+            }, 500); // Atraso de 0.5 segundos para simular carregamento
+        });
+    </script>
+</body>
+</html>

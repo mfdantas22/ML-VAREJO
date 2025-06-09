@@ -1,0 +1,34 @@
+# Pastas e arquivos gerados pelo Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+develop-eggs/
+.eggs/
+*.egg-info/
+.env
+.venv/
+venv/  # Sua pasta de ambiente virtual
+env/
+
+# Arquivos de dados grandes ou sensíveis (se houver)
+*.csv
+*.xlsx
+*.db
+*.sqlite3
+
+# Ignorar arquivos gerados pela IDE (ex: VS Code)
+.vscode/
+.idea/
+
+# Ignorar imagens geradas que podem ser recriadas
+static/images/arvore_decisao.png # Se gerada pelo código
+static/images/confusion_matrix.png # Se gerada pelo código
+
+# Outros arquivos específicos do seu projeto que não devem ir para o Git
+# Por exemplo:
+# my_secrets.txt
+# data/
